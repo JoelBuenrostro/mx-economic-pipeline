@@ -4,9 +4,13 @@ Fetches economic time series data from Banxico's public API.
 """
 
 import logging
+import os
 import httpx
 from datetime import date
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,12 +18,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+BANXICO_TOKEN = os.getenv("BANXICO_TOKEN")
 BANXICO_BASE_URL = "https://www.banxico.org.mx/SieAPIRest/service/v1"
 
 SERIES = {
-    "usd_mxn": "SF43718",
-    "inpc":    "SP1",
-    "tiie_28": "SF61745",
+    "usd_mxn": "SF43718",   # Tipo de cambio USD/MXN
+    "inpc":    "SP1",        # Inflación (INPC)
+    "tiie_28": "SF61745",    # TIIE a 28 días
 }
 
 
@@ -36,18 +41,25 @@ def fetch_series(
         serie_key:    Key from SERIES dict (e.g. "usd_mxn").
         fecha_inicio: Start date (inclusive).
         fecha_fin:    End date (inclusive).
-        token:        Optional Banxico API token for higher rate limits.
+        token:        Optional Banxico API token. If not provided, uses BANXICO_TOKEN env var.
 
     Returns:
         List of dicts with keys: serie, fecha, valor.
 
     Raises:
         ValueError: If serie_key is not recognized.
-        httpx.HTTPStatusError: On non-2xx responses after retries.
+        httpx.HTTPStatusError: On non-2xx responses.
     """
     if serie_key not in SERIES:
         raise ValueError(
             f"Serie '{serie_key}' no reconocida. Opciones: {list(SERIES.keys())}"
+        )
+
+    resolved_token = token or BANXICO_TOKEN
+    if not resolved_token:
+        raise ValueError(
+            "Se requiere un token de Banxico. "
+            "Define BANXICO_TOKEN en tu archivo .env o pásalo como argumento."
         )
 
     serie_id = SERIES[serie_key]
@@ -55,9 +67,10 @@ def fetch_series(
     fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
     url = f"{BANXICO_BASE_URL}/series/{serie_id}/datos/{fecha_inicio_str}/{fecha_fin_str}"
 
-    headers = {"Accept": "application/json"}
-    if token:
-        headers["Bmx-Token"] = token
+    headers = {
+        "Accept": "application/json",
+        "Bmx-Token": resolved_token,
+    }
 
     logger.info(
         "Fetching serie '%s' (%s) from %s to %s",
