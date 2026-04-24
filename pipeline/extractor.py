@@ -93,13 +93,23 @@ def fetch_series(
     data = response.json()
 
     try:
-        raw_datos = data["bmx"]["series"][0]["datos"]
+        serie_data = data["bmx"]["series"][0]
     except (KeyError, IndexError) as exc:
         logger.error(
             "Estructura inesperada en respuesta de Banxico para serie '%s': %s",
             serie_key, str(exc),
         )
         raise ValueError(f"Respuesta inesperada de Banxico: {exc}") from exc
+
+    if "datos" not in serie_data:
+        logger.warning(
+            "Serie '%s': Banxico no devolvió datos para el rango solicitado (%s → %s). "
+            "Es posible que la serie sea de frecuencia mensual o que no haya publicaciones en ese período.",
+            serie_key, fecha_inicio_str, fecha_fin_str,
+        )
+        return []
+
+    raw_datos = serie_data["datos"]
 
     records = []
     skipped = 0

@@ -5,16 +5,14 @@ Pydantic schemas for request validation and response serialization.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
-
+from pydantic import BaseModel, ConfigDict
 
 class EconomicRecordOut(BaseModel):
     serie: str
     fecha: datetime
     valor: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SerieInfo(BaseModel):

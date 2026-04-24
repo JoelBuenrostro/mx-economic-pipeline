@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+
+  pipeline:
+    build: .
+    command: python run_pipeline.py
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    profiles:
+      - run-pipeline
